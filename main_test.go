@@ -1,26 +1,37 @@
 package main
 
 import (
-	"net"
 	"fmt"
-	"bufio"
+	"golang.org/x/net/websocket"
+	"io"
 	"testing"
-	"github.com/gorilla/websocket"
 )
 
 func TestServer(t *testing.T) {
-	conn, err := net.Dial("tcp", "127.0.0.1:8080")
+	origin := "http://localhost/"
+	url := "ws://localhost:8080/ws"
+	ws, err := websocket.Dial(url, "", origin)
 	if err != nil {
-		fmt.Printf("Error connecting to server: %v\n", err)
+		t.Errorf("Error connecting to Server: %v\n", err)
 		return
 	}
 
-	fmt.Fprintf(conn, "GET / HTTP/1.0\r\n\r\n")
-	status, err := bufio.NewReader(conn).ReadString('\n')
-	if err != nil {
-		fmt.Printf("Error reading from server: %v\n", err)
+	// Start a test connection
+	if _, err := ws.Write([]byte("Test Client Here")); err != nil {
+		t.Errorf("Error writing to Server: %v\n", err)
 		return
 	}
 
-	fmt.Printf("Server Status: %v\n", status)
+	var msg = make([]byte, 255)
+	n, err := ws.Read(msg)
+	if err != nil {
+		if err == io.EOF {
+			return
+		}
+
+		t.Errorf("Error reading from Server: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Message received from Server: %v %v\n", n, string(msg[:n]))
 }
