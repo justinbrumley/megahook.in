@@ -48,8 +48,8 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	out := string(message)
-	if len(out) == 0 {
-		// Generate a random name for the user.
+	if _, ok := clients[out]; ok || len(out) == 0 {
+		// Generate a random name for the user if it's taken or they didn't provide one
 		out = uuid.Must(uuid.NewV4()).String()
 	} else {
 		// Format string appropriately
@@ -59,9 +59,10 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	clients[out] = make(chan *Request)
 
 	// TODO: Check if name exists in redis already and generate a new one if it does.
-	url := "http://localhost/" + out
+	url := "http://localhost:8080/" + out
 	err = conn.WriteMessage(websocket.TextMessage, []byte(url))
 
+	fmt.Printf("Listening for request at %v\n", url)
 	for {
 		select {
 		case r := <-clients[out]:
