@@ -1,16 +1,24 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/satori/go.uuid"
+	"io"
 	"log"
 	"net/http"
 	"strings"
 )
 
-var clients = make(map[string]chan *http.Request)
+type Request struct {
+	Headers map[string][]string `json:"headers,omitempty"`
+	Method  string              `json:"method,omitempty"`
+	Body    string              `json:"body,omitempty"`
+}
+
+var clients = make(map[string]chan *Request)
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -48,7 +56,7 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 		out = strings.ToLower(strings.Replace(strings.Trim(out, " "), " ", "-", -1))
 	}
 
-	clients[out] = make(chan *http.Request)
+	clients[out] = make(chan *Request)
 
 	// TODO: Check if name exists in redis already and generate a new one if it does.
 	url := "http://localhost/" + out
@@ -57,8 +65,8 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	for {
 		select {
 		case r := <-clients[out]:
-			fmt.Printf("Received a message on endpoint: %v %v\n", out, r)
-			// TODO: Pass request data to connected client so they can handle it however they like
+			fmt.Printf("Received a message on endpoint: %v\n", out)
+			conn.WriteJSON(r)
 			break
 		}
 	}
@@ -67,7 +75,31 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 func handler(w http.ResponseWriter, r *http.Request) {
 	v := mux.Vars(r)
 	id := v["id"]
-	clients[id] <- r
+
+	reader := bufio.NewReader(r.Body)
+	body := ""
+
+	for {
+		s, err := reader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+
+			fmt.Printf("Error reading from body: %v\n", err)
+			break
+		}
+
+		body += s
+	}
+
+	req := &Request{
+		Headers: map[string][]string(r.Header),
+		Method:  r.Method,
+		Body:    body,
+	}
+
+	clients[id] <- req
 }
 
 func main() {
