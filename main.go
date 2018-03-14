@@ -20,12 +20,14 @@ type Request struct {
 
 var clients = make(map[string]chan *Request)
 
+func checkOrigin(r *http.Request) bool {
+	return true
+}
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
+	CheckOrigin:     checkOrigin,
 }
 
 func websocketHandler(w http.ResponseWriter, r *http.Request) {
@@ -59,7 +61,7 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	clients[out] = make(chan *Request)
 
 	// TODO: Check if name exists in redis already and generate a new one if it does.
-	url := "http://localhost:8080/" + out
+	url := "http://megahook.in/" + out
 	err = conn.WriteMessage(websocket.TextMessage, []byte(url))
 
 	fmt.Printf("Listening for request at %v\n", url)
@@ -74,6 +76,7 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Home page view!")
 	http.ServeFile(w, r, "index.html")
 }
 
@@ -114,8 +117,11 @@ func main() {
 	r.HandleFunc("/ws", websocketHandler).
 		Methods("GET")
 
-	r.HandleFunc("/", homeHandler)
-	r.HandleFunc("/{id}", handler)
+	r.HandleFunc("/", homeHandler).
+		Methods("GET")
 
-	log.Fatal(http.ListenAndServe(":8080", r))
+	r.HandleFunc("/{id}", handler).
+		Methods("GET")
+
+	log.Fatal(http.ListenAndServe(":80", r))
 }
