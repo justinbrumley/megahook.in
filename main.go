@@ -73,6 +73,10 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func homeHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "index.html")
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
 	v := mux.Vars(r)
 	id := v["id"]
@@ -110,6 +114,7 @@ func main() {
 	r.HandleFunc("/ws", websocketHandler).
 		Methods("GET")
 
+	r.HandleFunc("/", homeHandler)
 	r.HandleFunc("/{id}", handler)
 
 	log.Fatal(http.ListenAndServe(":8080", r))

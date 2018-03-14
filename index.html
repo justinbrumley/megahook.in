@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Megahook^tm</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+	<h1>Megahook</h1>
+	<p>Megahook is a utility for forwarding webhooks to your local environment.</p>
+
+	<h4>Install</h4>
+	<p>
+		<a href="https://golang.org/doc/install" target="_blank">Make sure that you have go installed first.</a>
+		Then run the following:
+	</p>
+	<code>
+		go install github.com/justinbrumley/megahook
+	</code>
+	<p>And to connect to the server and start passing traffic around:</p>
+	<code>
+		megahook http://localhost:8080 my-first-hook
+	</code>
+	<p>
+		You should be given a URL you can start using for your webhooks. If the name you chose
+		is already taken, you will be given a randomly generated one.
+	</p>
+</body>
+</html>
