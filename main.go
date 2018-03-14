@@ -120,12 +120,14 @@ func main() {
 	r.HandleFunc("/", homeHandler).
 		Methods("GET")
 
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
+
 	r.HandleFunc("/{id}", handler).
 		Methods("GET")
 
 	// Start HTTPS server on different Goroutine
 	go func() {
-		log.Fatal(http.ListenAndServeTLS(":443", "cert.pem", "key.pem", r))
+		log.Fatal(http.ListenAndServeTLS(":443", "/etc/letsencrypt/live/megahook.in/fullchain.pem", "/etc/letsencrypt/live/megahook.in/privkey.pem", r))
 	}()
 
 	log.Fatal(http.ListenAndServe(":80", r))
