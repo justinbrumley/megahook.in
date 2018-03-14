@@ -91,6 +91,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		s, err := reader.ReadString('\n')
 		if err != nil {
 			if err == io.EOF {
+				body += s
 				break
 			}
 
@@ -120,10 +121,10 @@ func main() {
 	r.HandleFunc("/", homeHandler).
 		Methods("GET")
 
+	// TODO: Something needs to change here. They both can't coexist.
+	// Currently only the first handler works
+	r.HandleFunc("/{id}", handler)
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
-
-	r.HandleFunc("/{id}", handler).
-		Methods("GET")
 
 	// Start HTTPS server on different Goroutine
 	go func() {
