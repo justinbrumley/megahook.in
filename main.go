@@ -123,5 +123,10 @@ func main() {
 	r.HandleFunc("/{id}", handler).
 		Methods("GET")
 
+	// Start HTTPS server on different Goroutine
+	go func() {
+		log.Fatal(http.ListenAndServeTLS(":443", "cert.pem", "key.pem", r))
+	}()
+
 	log.Fatal(http.ListenAndServe(":80", r))
 }
