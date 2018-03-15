@@ -61,7 +61,7 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	clients[out] = make(chan *Request)
 
 	// TODO: Check if name exists in redis already and generate a new one if it does.
-	url := "http://megahook.in/m/" + out
+	url := "https://megahook.in/m/" + out
 	err = conn.WriteMessage(websocket.TextMessage, []byte(url))
 
 	fmt.Printf("Listening for request at %v\n", url)
