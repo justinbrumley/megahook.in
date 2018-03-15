@@ -61,7 +61,7 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	clients[out] = make(chan *Request)
 
 	// TODO: Check if name exists in redis already and generate a new one if it does.
-	url := "http://megahook.in/" + out
+	url := "http://megahook.in/m/" + out
 	err = conn.WriteMessage(websocket.TextMessage, []byte(url))
 
 	fmt.Printf("Listening for request at %v\n", url)
@@ -123,7 +123,7 @@ func main() {
 
 	// TODO: Something needs to change here. They both can't coexist.
 	// Currently only the first handler works
-	r.HandleFunc("/{id}", handler)
+	r.HandleFunc("/m/{id}", handler)
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
 
 	// Start HTTPS server on different Goroutine
