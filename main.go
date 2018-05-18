@@ -59,6 +59,7 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	clients[out] = make(chan *Request)
+	defer delete(clients, out)
 
 	// TODO: Check if name exists in redis already and generate a new one if it does.
 	url := "https://megahook.in/m/" + out
@@ -121,8 +122,6 @@ func main() {
 	r.HandleFunc("/", homeHandler).
 		Methods("GET")
 
-	// TODO: Something needs to change here. They both can't coexist.
-	// Currently only the first handler works
 	r.HandleFunc("/m/{id}", handler)
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
 
