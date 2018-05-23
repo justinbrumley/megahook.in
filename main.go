@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -16,6 +17,7 @@ type Request struct {
 	Headers map[string][]string `json:"headers,omitempty"`
 	Method  string              `json:"method,omitempty"`
 	Body    string              `json:"body,omitempty"`
+	Query   url.Values          `json:"query,omitempty"`
 }
 
 var clients = make(map[string]chan *Request)
@@ -107,6 +109,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		Headers: map[string][]string(r.Header),
 		Method:  r.Method,
 		Body:    body,
+		Query:   r.URL.Query(),
 	}
 
 	clients[id] <- req
