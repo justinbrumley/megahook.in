@@ -10,7 +10,9 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
+	"time"
 )
 
 type Request struct {
@@ -19,6 +21,13 @@ type Request struct {
 	Body    string              `json:"body,omitempty"`
 	Query   url.Values          `json:"query,omitempty"`
 }
+
+const (
+	port         = "80"
+	readTimeout  = time.Second * 30
+	writeTimeout = time.Second * 30
+	pingPeriod   = time.Second * 5
+)
 
 var clients = make(map[string]chan *Request)
 
@@ -39,6 +48,11 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
+
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(readTimeout))
+		return nil
+	})
 
 	messageType, message, err := conn.ReadMessage()
 	if err != nil {
@@ -61,19 +75,54 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	clients[out] = make(chan *Request)
-	defer delete(clients, out)
+	defer (func() {
+		fmt.Println("Closing connection...")
+		close(clients[out])
+		delete(clients, out)
+	})()
 
-	// TODO: Check if name exists in redis already and generate a new one if it does.
 	url := "https://megahook.in/m/" + out
-	err = conn.WriteMessage(websocket.TextMessage, []byte(url))
+	conn.SetWriteDeadline(time.Now().Add(writeTimeout))
+	if err = conn.WriteMessage(websocket.TextMessage, []byte(url)); err != nil {
+		return
+	}
 
+	close := make(chan bool)
+	go (func() {
+		// Read Messages
+		resp := http.Response{}
+		if err := conn.ReadJSON(&resp); err != nil {
+			close <- true
+			return
+		}
+
+		fmt.Printf("Response: %v\n", resp)
+	})()
+
+	ticker := time.NewTicker(pingPeriod)
 	fmt.Printf("Listening for request at %v\n", url)
 	for {
 		select {
-		case r := <-clients[out]:
-			fmt.Printf("Received a message on endpoint: %v\n", out)
-			conn.WriteJSON(r)
+		case <-close:
+			return
+		case <-ticker.C:
+			conn.SetWriteDeadline(time.Now().Add(writeTimeout))
+			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				fmt.Printf("Error sending ping: %v\n", err)
+				return
+			}
 			break
+		case r, ok := <-clients[out]:
+			if !ok {
+				fmt.Println("Client not ok")
+				return
+			}
+
+			conn.SetWriteDeadline(time.Now().Add(writeTimeout))
+			if err := conn.WriteJSON(r); err != nil {
+				fmt.Printf("Failed to write message: %v\n", err)
+				return
+			}
 		}
 	}
 }
@@ -116,6 +165,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	environment := os.Getenv("ENV")
+
 	r := mux.NewRouter()
 	r.StrictSlash(true)
 
@@ -129,9 +180,11 @@ func main() {
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
 
 	// Start HTTPS server on different Goroutine
-	go func() {
-		log.Fatal(http.ListenAndServeTLS(":443", "/etc/letsencrypt/live/megahook.in/fullchain.pem", "/etc/letsencrypt/live/megahook.in/privkey.pem", r))
-	}()
+	if environment != "development" {
+		go func() {
+			log.Fatal(http.ListenAndServeTLS(":443", "/etc/letsencrypt/live/megahook.in/fullchain.pem", "/etc/letsencrypt/live/megahook.in/privkey.pem", r))
+		}()
+	}
 
-	log.Fatal(http.ListenAndServe(":80", r))
+	log.Fatal(http.ListenAndServe(":"+port, r))
 }
