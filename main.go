@@ -164,6 +164,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	clients[id] <- req
 }
 
+func inspectHandler(w http.ResponseWriter, r *http.Request) {
+	v := mux.Vars(r)
+	id := v["id"]
+	fmt.Printf("Inspecting page: %v\n", id)
+	http.ServeFile(w, r, "inspect.html")
+}
+
 func main() {
 	environment := os.Getenv("ENV")
 
@@ -177,6 +184,8 @@ func main() {
 		Methods("GET")
 
 	r.HandleFunc("/m/{id}", handler)
+	r.HandleFunc("/m/{id}/inspect", inspectHandler)
+
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
 
 	// Start HTTPS server on different Goroutine
