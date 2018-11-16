@@ -23,7 +23,6 @@ type Request struct {
 }
 
 const (
-	port         = "80"
 	readTimeout  = time.Second * 30
 	writeTimeout = time.Second * 30
 	pingPeriod   = time.Second * 5
@@ -183,13 +182,20 @@ func main() {
 	r.HandleFunc("/", homeHandler).
 		Methods("GET")
 
-	r.HandleFunc("/m/{id}", handler)
-	r.HandleFunc("/m/{id}/inspect", inspectHandler)
+	r.HandleFunc("/m/{id}/inspect", homeHandler).
+		Methods("GET")
 
+	r.HandleFunc("/m/{id}", handler)
+
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./dist/")))
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
+
+	port := "8080"
 
 	// Start HTTPS server on different Goroutine
 	if environment != "development" {
+		port = "80"
+
 		go func() {
 			log.Fatal(http.ListenAndServeTLS(":443", "/etc/letsencrypt/live/megahook.in/fullchain.pem", "/etc/letsencrypt/live/megahook.in/privkey.pem", r))
 		}()
