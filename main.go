@@ -163,13 +163,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	clients[id] <- req
 }
 
-func inspectHandler(w http.ResponseWriter, r *http.Request) {
-	v := mux.Vars(r)
-	id := v["id"]
-	fmt.Printf("Inspecting page: %v\n", id)
-	http.ServeFile(w, r, "inspect.html")
-}
-
 func main() {
 	environment := os.Getenv("ENV")
 
@@ -201,5 +194,6 @@ func main() {
 		}()
 	}
 
+	fmt.Printf("Starting server on port %v\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, r))
 }
