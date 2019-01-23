@@ -40,6 +40,8 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin:     checkOrigin,
 }
 
+const STATIC_DIR = "/static/"
+
 func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -180,8 +182,8 @@ func main() {
 
 	r.HandleFunc("/m/{id}", handler)
 
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./dist/")))
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
+	r.PathPrefix(STATIC_DIR).Handler(http.StripPrefix(STATIC_DIR, http.FileServer(http.Dir("." + STATIC_DIR))))
+	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("./dist/"))))
 
 	port := "8080"
 

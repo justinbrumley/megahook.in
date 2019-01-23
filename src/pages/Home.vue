@@ -3,6 +3,9 @@
     <h1>Megahook</h1>
     <p>Megahook is a utility for forwarding webhooks to your local environment.</p>
 
+    <h4>Downloads</h4>
+    <a href="/static/latest/megahook.deb">Download .DEB</a>
+
     <h4>Install</h4>
     <p>
       <a href="https://golang.org/doc/install" target="_blank">Make sure that you have go installed first.</a>
