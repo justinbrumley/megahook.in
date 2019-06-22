@@ -1,5 +1,5 @@
 ## Todo
-- Add VueJS to project to start adding a client side dashboard
+- Add support for reading responses from target client and sending responses back to original client
 - Add url specific dashboard to view requests in the browser
 - Store requests made in a db somewhere (redis or mongo maybe?)
 - Persist URLs between sessions and allow reconnecting to existing url

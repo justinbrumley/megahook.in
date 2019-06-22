@@ -5,7 +5,13 @@
   "repository": "http://git.justinbrumley.com/justinbrumley/megahook.in.git",
   "author": "Justin Brumley <justinbrumley012@gmail.com>",
   "license": "MIT",
+  "scripts": {
+    "watch": "npx webpack --watch"
+  },
   "dependencies": {
+    "css-loader": "^3.0.0",
+    "stylus": "^0.54.5",
+    "stylus-loader": "^3.0.2",
     "vue": "^2.5.17",
     "vue-router": "^3.0.2"
   },
@@ -14,6 +20,7 @@
     "babel-loader": "^8.0.4",
     "vue-loader": "^15.4.2",
     "vue-template-compiler": "^2.5.17",
-    "webpack": "^4.25.1"
+    "webpack": "^4.25.1",
+    "webpack-cli": "^3.3.4"
   }
 }

@@ -129,7 +129,6 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Home page view!")
 	http.ServeFile(w, r, "index.html")
 }
 
@@ -182,7 +181,7 @@ func main() {
 
 	r.HandleFunc("/m/{id}", handler)
 
-	r.PathPrefix(STATIC_DIR).Handler(http.StripPrefix(STATIC_DIR, http.FileServer(http.Dir("." + STATIC_DIR))))
+	r.PathPrefix(STATIC_DIR).Handler(http.StripPrefix(STATIC_DIR, http.FileServer(http.Dir("."+STATIC_DIR))))
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("./dist/"))))
 
 	port := "8080"
