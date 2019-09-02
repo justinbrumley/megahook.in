@@ -1,12 +1,8 @@
 <template>
   <div>
-    <h1>Megahook</h1>
+    <img src="/static/img/logo.png" />
     <hr />
     <p>Megahook is a utility for forwarding webhooks to your local environment.</p>
-    <hr />
-
-    <h4>Downloads</h4>
-    <a href="/static/latest/megahook.deb">Linux</a>
     <hr />
     <h4>Install Manually</h4>
     <p>
@@ -51,6 +47,11 @@
     max-width: 768px
     margin: auto
 
+  img
+    width: 200px
+    display: block
+    margin: auto
+
   h1
     text-align: center
 
@@ -68,7 +69,4 @@
     margin-bottom: 10px
     display: inline-block
     font-size: 14px
-
-  h1, h2, h3, h4, h5, h6
-    text-shadow: 0 2px 10px #A2E0D3
 </style>
