@@ -16,10 +16,16 @@ import (
 )
 
 type Request struct {
+	Headers  map[string][]string `json:"headers,omitempty"`
+	Method   string              `json:"method,omitempty"`
+	Body     string              `json:"body,omitempty"`
+	Query    url.Values          `json:"query,omitempty"`
+	Response chan *Response      `json:"-"`
+}
+
+type Response struct {
 	Headers map[string][]string `json:"headers,omitempty"`
-	Method  string              `json:"method,omitempty"`
 	Body    string              `json:"body,omitempty"`
-	Query   url.Values          `json:"query,omitempty"`
 }
 
 const (
@@ -88,24 +94,10 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	close := make(chan bool)
-	go (func() {
-		// Read Messages
-		resp := http.Response{}
-		if err := conn.ReadJSON(&resp); err != nil {
-			close <- true
-			return
-		}
-
-		fmt.Printf("Response: %v\n", resp)
-	})()
-
 	ticker := time.NewTicker(pingPeriod)
-	fmt.Printf("Listening for request at %v\n", url)
+	fmt.Printf("Listening for requests at %v\n", url)
 	for {
 		select {
-		case <-close:
-			return
 		case <-ticker.C:
 			conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
@@ -124,6 +116,15 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 				fmt.Printf("Failed to write message: %v\n", err)
 				return
 			}
+
+			// Wait for response
+			resp := &Response{}
+			if err := conn.ReadJSON(&resp); err != nil {
+				fmt.Printf("Failed to read response: %v\n", err)
+				continue
+			}
+
+			r.Response <- resp
 		}
 	}
 }
@@ -155,13 +156,30 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req := &Request{
-		Headers: map[string][]string(r.Header),
-		Method:  r.Method,
-		Body:    body,
-		Query:   r.URL.Query(),
+		Headers:  map[string][]string(r.Header),
+		Method:   r.Method,
+		Body:     body,
+		Query:    r.URL.Query(),
+		Response: make(chan *Response),
 	}
 
 	clients[id] <- req
+
+	// Wait for response from client
+	ticker := time.NewTicker(readTimeout)
+	select {
+	case <-ticker.C:
+		return
+
+	case response := <-req.Response:
+		for key, headers := range response.Headers {
+			for _, value := range headers {
+				w.Header().Set(key, value)
+			}
+		}
+
+		fmt.Fprint(w, response.Body)
+	}
 }
 
 func main() {
