@@ -46,6 +46,7 @@
     font-weight: 400
     max-width: 768px
     margin: auto
+    padding: 0 20px;
 
   img
     width: 200px
