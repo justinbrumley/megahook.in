@@ -10,15 +10,18 @@
       Then run the following:
     </p>
     <code>
-      go get github.com/justinbrumley/megahook
+      go get github.com/justinbrumley/megahook && \
+      <br />
       go install github.com/justinbrumley/megahook
     </code>
     <p>
       Or if you prefer using git:
     </p>
     <code>
-      git clone github.com/justinbrumley/megahook
-      cd megahook
+      git clone github.com/justinbrumley/megahook && \
+      <br />
+      cd megahook && \
+      <br />
       go install
     </code>
     <p>And finally, connect to the server and start receiving webhook traffic:</p>
