@@ -32,6 +32,9 @@ const (
 	readTimeout  = time.Second * 30
 	writeTimeout = time.Second * 30
 	pingPeriod   = time.Second * 5
+
+	// TODO: Move somewhere else
+	version = "0.0.2"
 )
 
 var clients = make(map[string]chan *Request)
@@ -94,10 +97,33 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	close := make(chan bool)
+	responseChan := make(chan *Response)
+	go (func() {
+		// Read messages from client
+		r := &Response{}
+		if err := conn.ReadJSON(&r); err != nil {
+			// Connection closed or errored out
+			c := err.(*websocket.CloseError).Code
+			if c != 1006 && c != 1000 { // Normal and Abnormal Closures are okay
+				fmt.Printf("Failed to read message: %v\n", err.(*websocket.CloseError).Code)
+			}
+
+			close <- true
+			return
+		}
+
+		responseChan <- r
+	})()
+
 	ticker := time.NewTicker(pingPeriod)
+
 	fmt.Printf("Listening for requests at %v\n", url)
+
 	for {
 		select {
+		case <-close:
+			return
 		case <-ticker.C:
 			conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
@@ -118,13 +144,7 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// Wait for response
-			resp := &Response{}
-			if err := conn.ReadJSON(&resp); err != nil {
-				fmt.Printf("Failed to read response: %v\n", err)
-				continue
-			}
-
-			r.Response <- resp
+			r.Response <- <-responseChan
 		}
 	}
 }
@@ -136,6 +156,12 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 func handler(w http.ResponseWriter, r *http.Request) {
 	v := mux.Vars(r)
 	id := v["id"]
+
+	if _, ok := clients[id]; !ok {
+		w.WriteHeader(404)
+		fmt.Fprint(w, "Not Found")
+		return
+	}
 
 	reader := bufio.NewReader(r.Body)
 	body := ""
@@ -182,6 +208,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func versionHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(200)
+	fmt.Fprintf(w, "%v", version)
+}
+
 func main() {
 	environment := os.Getenv("ENV")
 
@@ -198,6 +229,9 @@ func main() {
 		Methods("GET")
 
 	r.HandleFunc("/m/{id}", handler)
+
+	r.HandleFunc("/version", versionHandler).
+		Methods("GET")
 
 	r.PathPrefix(STATIC_DIR).Handler(http.StripPrefix(STATIC_DIR, http.FileServer(http.Dir("."+STATIC_DIR))))
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("./dist/"))))
