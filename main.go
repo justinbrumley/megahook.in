@@ -24,8 +24,9 @@ type Request struct {
 }
 
 type Response struct {
-	Headers map[string][]string `json:"headers,omitempty"`
-	Body    string              `json:"body,omitempty"`
+	Headers    map[string][]string `json:"headers,omitempty"`
+	Body       string              `json:"body,omitempty"`
+	StatusCode int                 `json:"status_code,omitempty"`
 }
 
 const (
@@ -34,7 +35,7 @@ const (
 	pingPeriod   = time.Second * 5
 
 	// TODO: Move somewhere else
-	version = "0.0.2"
+	version = "0.0.3"
 )
 
 var clients = make(map[string]chan *Request)
@@ -217,6 +218,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		w.WriteHeader(response.StatusCode)
 		fmt.Fprint(w, response.Body)
 	}
 }
