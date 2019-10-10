@@ -100,20 +100,22 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	close := make(chan bool)
 	responseChan := make(chan *Response)
 	go (func() {
-		// Read messages from client
-		r := &Response{}
-		if err := conn.ReadJSON(&r); err != nil {
-			// Connection closed or errored out
-			c := err.(*websocket.CloseError).Code
-			if c != 1006 && c != 1000 { // Normal and Abnormal Closures are okay
-				fmt.Printf("Failed to read message: %v\n", err.(*websocket.CloseError).Code)
+		for {
+			// Read messages from client
+			r := &Response{}
+			if err := conn.ReadJSON(&r); err != nil {
+				// Connection closed or errored out
+				c := err.(*websocket.CloseError).Code
+				if c != 1006 && c != 1000 { // Normal and Abnormal Closures are okay
+					fmt.Printf("Failed to read message: %v\n", err.(*websocket.CloseError).Code)
+				}
+
+				close <- true
+				return
 			}
 
-			close <- true
-			return
+			responseChan <- r
 		}
-
-		responseChan <- r
 	})()
 
 	ticker := time.NewTicker(pingPeriod)
