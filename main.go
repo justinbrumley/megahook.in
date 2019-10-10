@@ -105,9 +105,12 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 			r := &Response{}
 			if err := conn.ReadJSON(&r); err != nil {
 				// Connection closed or errored out
-				c := err.(*websocket.CloseError).Code
-				if c != 1006 && c != 1000 { // Normal and Abnormal Closures are okay
-					fmt.Printf("Failed to read message: %v\n", err.(*websocket.CloseError).Code)
+				switch err.(type) {
+				case *websocket.CloseError:
+					c := err.(*websocket.CloseError).Code
+					if c != 1006 && c != 1000 { // Normal and Abnormal Closures are okay
+						fmt.Printf("Failed to read message: %v\n", err.(*websocket.CloseError).Code)
+					}
 				}
 
 				close <- true
@@ -146,7 +149,15 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// Wait for response
-			r.Response <- <-responseChan
+			respTicker := time.NewTicker(readTimeout)
+			select {
+			case <-respTicker.C:
+				fmt.Println("Response took too long. Not waiting anymore")
+				continue
+
+			case resp := <-responseChan:
+				r.Response <- resp
+			}
 		}
 	}
 }
