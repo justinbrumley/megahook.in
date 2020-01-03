@@ -15,6 +15,8 @@ func TestServer(t *testing.T) {
 
 	header := &http.Header{}
 	header.Add("Origin", "http://localhost/")
+
+	fmt.Println("Dialing up websocket connection")
 	conn, _, err := dialer.Dial("ws://localhost:8080/ws", *header)
 	if err != nil {
 		fmt.Printf("Error establishing connection: %v\n", err)
@@ -33,6 +35,7 @@ func TestServer(t *testing.T) {
 		return
 	}
 
+	fmt.Println("Waiting for traffic through webhook... (that's on you)")
 	for {
 		messageType, message, err := conn.ReadMessage()
 		if err != nil {
@@ -48,5 +51,10 @@ func TestServer(t *testing.T) {
 		if messageType == websocket.TextMessage {
 			fmt.Printf("Received message from server: %v\n", string(message))
 		}
+
+		// Write success response back to server
+		conn.WriteJSON(&Response{
+			StatusCode: 200,
+		})
 	}
 }
