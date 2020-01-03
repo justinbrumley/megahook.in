@@ -6,6 +6,7 @@
   "author": "Justin Brumley <justinbrumley012@gmail.com>",
   "license": "MIT",
   "scripts": {
+    "build": "npx webpack",
     "watch": "npx webpack --watch"
   },
   "dependencies": {
