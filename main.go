@@ -15,6 +15,7 @@ import (
 	"time"
 )
 
+// Request sent to webhook from outside source.
 type Request struct {
 	Headers  map[string][]string `json:"headers,omitempty"`
 	Method   string              `json:"method,omitempty"`
@@ -23,6 +24,7 @@ type Request struct {
 	Response chan *Response      `json:"-"`
 }
 
+// Response from the megahook client. Will be forwarded back to outside source.
 type Response struct {
 	Headers    map[string][]string `json:"headers,omitempty"`
 	Body       string              `json:"body,omitempty"`
@@ -35,7 +37,7 @@ const (
 	pingPeriod   = time.Second * 5
 
 	// TODO: Move somewhere else
-	version = "0.0.3"
+	version = "0.0.4"
 )
 
 var clients = make(map[string]chan *Request)
@@ -79,7 +81,7 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	out := string(message)
 	if _, ok := clients[out]; ok || len(out) == 0 {
 		// Generate a random name for the user if it's taken or they didn't provide one
-		out = uuid.Must(uuid.NewV4()).String()
+		out = uuid.Must(uuid.NewV4(), nil).String()
 	} else {
 		// Format string appropriately
 		out = strings.ToLower(strings.Replace(strings.Trim(out, " "), " ", "-", -1))
@@ -203,13 +205,18 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		Response: make(chan *Response),
 	}
 
+	rec := &Record{
+		Request:   req,
+		Timestamp: time.Now().Unix(),
+	}
+
 	clients[id] <- req
 
 	// Wait for response from client
 	ticker := time.NewTicker(readTimeout)
 	select {
 	case <-ticker.C:
-		return
+		break
 
 	case response := <-req.Response:
 		for key, headers := range response.Headers {
@@ -218,9 +225,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		rec.Response = response
+
 		w.WriteHeader(response.StatusCode)
 		fmt.Fprint(w, response.Body)
 	}
+
+	// Store record in redis
+	AddRecord(id, rec)
 }
 
 func versionHandler(w http.ResponseWriter, r *http.Request) {
@@ -230,6 +242,8 @@ func versionHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	environment := os.Getenv("ENV")
+
+	InitRedis()
 
 	r := mux.NewRouter()
 	r.StrictSlash(true)
