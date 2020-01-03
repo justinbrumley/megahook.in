@@ -2,11 +2,13 @@
   <div>
     <img src="/static/img/logo.png" />
     <hr />
-    <p>Megahook is a utility for forwarding webhooks to your local environment.</p>
+    <div class="description">Easily forward webhook traffic to your local environment</div>
     <hr />
     <div class="content">
       <div>
-        <h3>Docker</h3>
+        <a href="#docker" id="docker">
+          <h2># Docker</h2>
+        </a>
         <p>
           The docker repo should make running Megahook easier, especially if you don't want to install go.
         </p>
@@ -33,9 +35,12 @@
         <code>
           docker logs --tail 30 CONTAINER_NAME
         </code>
+        <hr />
       </div>
       <div>
-        <h3>Install Manually</h3>
+        <a href="#manual" id="manual">
+          <h2># Install Manually</h2>
+        </a>
         <p>
           <a href="https://golang.org/doc/install" target="_blank">Make sure that you have go installed first.</a>
           Then run the following:
@@ -81,19 +86,30 @@
     font-family: IBM Plex Mono, monospace
     font-weight: 400
     margin: auto
-    padding: 0 20px;
+    padding: 0 20px
+
+  .description
+    font-weight: bold
+    text-align: center
 
   .content
-    display: flex;
+    display: flex
+
+    hr
+      display: none
+
+    > div:first-child
+      border-right: 1px dashed #f649a7
 
     > div
-      width: 50%;
-      padding: 0 10px;
+      width: 50%
+      padding: 0 15px
+      box-sizing: border-box
 
   img
-    width: 200px
+    width: 300px
     display: block
-    margin: auto
+    margin: -20px auto
 
   h1
     text-align: center
@@ -117,8 +133,15 @@
 
   @media (max-width: 1350px)
     .content
-      flex-direction: column;
+      flex-direction: column
+
+      hr
+        display: block
+
+      > div:first-child
+        border: none
 
       > div
-        width: 100%;
+        padding: 0
+        width: 100%
 </style>
