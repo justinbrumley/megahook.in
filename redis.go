@@ -23,7 +23,7 @@ const (
 
 var rClient *redis.Client
 
-func InitRedis() {
+func InitRedis() error {
 	rClient = redis.NewClient(&redis.Options{
 		Addr:     addr,
 		Password: password,
@@ -31,12 +31,11 @@ func InitRedis() {
 	})
 
 	_, err := rClient.Ping().Result()
-
 	if err != nil {
-		fmt.Printf("Failed to connect to redis: %v\n", err)
-	} else {
-		fmt.Println("Successfully connected to redis")
+		return err
 	}
+
+	return nil
 }
 
 // Removes old records from list in redis by key
@@ -59,9 +58,6 @@ func AddRecord(key string, record *Record) error {
 		Member: member,
 	}
 
-	pretty, _ := json.MarshalIndent(record, "", "  ")
-	fmt.Printf("Adding Z Record: %v %v\n", key, string(pretty))
-
 	err = rClient.ZAdd(key, z).Err()
 	if err != nil {
 		return err
@@ -80,20 +76,15 @@ func AddRecord(key string, record *Record) error {
 func GetRecords(key string) ([]Record, error) {
 	PurgeRecords(key)
 
-	r := rClient.ZRange(key, 0, -1)
-
-	err := r.Err()
+	results, err := rClient.ZRange(key, 0, -1).Result()
 	if err != nil {
 		return nil, err
 	}
 
-	a := r.Args()
-	fmt.Printf("Got records: %v\n", a)
-
 	var records []Record
-	for _, item := range a {
+	for _, item := range results {
 		record := &Record{}
-		err = json.Unmarshal(item.([]byte), &record)
+		err = json.Unmarshal([]byte(item), &record)
 		if err != nil {
 			fmt.Printf("Failed to unmarshal item: %v\n", err)
 			continue
@@ -102,7 +93,7 @@ func GetRecords(key string) ([]Record, error) {
 		records = append(records, *record)
 	}
 
-	fmt.Printf("Final records: %v\n", records)
-
+	pretty, _ := json.MarshalIndent(records, "", "  ")
+	fmt.Printf("Cached Records: \n%v\n", string(pretty))
 	return records, nil
 }
