@@ -23,7 +23,7 @@ const (
 
 var rClient *redis.Client
 
-func InitRedis() error {
+func initRedis() error {
 	rClient = redis.NewClient(&redis.Options{
 		Addr:     addr,
 		Password: password,
@@ -39,14 +39,14 @@ func InitRedis() error {
 }
 
 // Removes old records from list in redis by key
-func PurgeRecords(key string) {
+func purgeRecords(key string) {
 	max := time.Now().AddDate(0, 0, -1).Unix() // 24hr max age
 	rClient.ZRemRangeByScore(key, "-inf", string(max))
 }
 
 // Add Record to list in redis using current timestamp as score
-func AddRecord(key string, record *Record) error {
-	PurgeRecords(key)
+func addRecord(key string, record *Record) error {
+	purgeRecords(key)
 
 	member, err := json.Marshal(record)
 	if err != nil {
@@ -73,8 +73,8 @@ func AddRecord(key string, record *Record) error {
 }
 
 // Fetch slice of Records from redis by key
-func GetRecords(key string) ([]Record, error) {
-	PurgeRecords(key)
+func getRecords(key string) ([]Record, error) {
+	purgeRecords(key)
 
 	results, err := rClient.ZRange(key, 0, -1).Result()
 	if err != nil {

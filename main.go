@@ -232,7 +232,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Store record in redis
-	AddRecord(id, rec)
+	addRecord(id, rec)
 }
 
 func versionHandler(w http.ResponseWriter, r *http.Request) {
@@ -243,7 +243,7 @@ func versionHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	environment := os.Getenv("ENV")
 
-	InitRedis()
+	initRedis()
 
 	r := mux.NewRouter()
 	r.StrictSlash(true)
@@ -254,7 +254,10 @@ func main() {
 	r.HandleFunc("/", homeHandler).
 		Methods("GET")
 
-	r.HandleFunc("/m/{id}/inspect", homeHandler).
+	r.HandleFunc("/i/{id}", homeHandler).
+		Methods("GET")
+
+	r.HandleFunc("/api/hooks/{name}/history", historyHandler).
 		Methods("GET")
 
 	r.HandleFunc("/m/{id}", handler)

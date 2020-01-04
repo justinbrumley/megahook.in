@@ -3,7 +3,7 @@ import Inspect from './pages/Inspect';
 
 const routes = [
   { path: '/', component: Home },
-  { path: '/m/:name/inspect', component: Inspect },
+  { path: '/i/:name', component: Inspect },
 ];
 
 export default routes;

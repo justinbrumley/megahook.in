@@ -6,7 +6,7 @@ import (
 )
 
 func TestRedisAddRecord(t *testing.T) {
-	err := InitRedis()
+	err := initRedis()
 	if err != nil {
 		t.Errorf("Error initializing redis: %v\n", err)
 	}
@@ -26,19 +26,19 @@ func TestRedisAddRecord(t *testing.T) {
 		Timestamp: time.Now().Unix(),
 	}
 
-	err = AddRecord("test-redis-key", record)
+	err = addRecord("test-redis-key", record)
 	if err != nil {
 		t.Errorf("Error adding record to redis: %v\n", err)
 	}
 }
 
 func TestRedisGetRecords(t *testing.T) {
-	err := InitRedis()
+	err := initRedis()
 	if err != nil {
 		t.Errorf("Error initializing redis: %v\n", err)
 	}
 
-	records, err := GetRecords("test-redis-key")
+	records, err := getRecords("test-redis-key")
 	if err != nil {
 		t.Errorf("Error getting records from redis: %v\n", err)
 	}
