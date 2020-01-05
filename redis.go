@@ -39,14 +39,18 @@ func initRedis() error {
 }
 
 // Removes old records from list in redis by key
-func purgeRecords(key string) {
+func purgeRecords(key string) error {
 	max := time.Now().AddDate(0, 0, -1).Unix() // 24hr max age
-	rClient.ZRemRangeByScore(key, "-inf", string(max))
+	err := rClient.ZRemRangeByScore(key, "-inf", fmt.Sprintf("%d", max)).Err()
+	return err
 }
 
 // Add Record to list in redis using current timestamp as score
 func addRecord(key string, record *Record) error {
-	purgeRecords(key)
+	err := purgeRecords(key)
+	if err != nil {
+		return err
+	}
 
 	member, err := json.Marshal(record)
 	if err != nil {
@@ -74,7 +78,10 @@ func addRecord(key string, record *Record) error {
 
 // Fetch slice of Records from redis by key
 func getRecords(key string) ([]Record, error) {
-	purgeRecords(key)
+	err := purgeRecords(key)
+	if err != nil {
+		return nil, err
+	}
 
 	results, err := rClient.ZRange(key, 0, -1).Result()
 	if err != nil {
@@ -93,7 +100,5 @@ func getRecords(key string) ([]Record, error) {
 		records = append(records, *record)
 	}
 
-	pretty, _ := json.MarshalIndent(records, "", "  ")
-	fmt.Printf("Cached Records: \n%v\n", string(pretty))
 	return records, nil
 }
