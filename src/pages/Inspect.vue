@@ -2,7 +2,7 @@
   <div class="page">
     <a href="/"><img src="/static/img/logo.png" /></a>
     <hr />
-    <div class="description">Easily forward webhook traffic to your local environment</div>
+    <div class="description">Traffic data should be visible for up to 24hr</div>
     <hr />
     <div v-if="hasMore" class="more-button">
       <a href="#" v-on:click="showMore">Show More Requests &uarr;</a>
@@ -67,6 +67,8 @@ export default {
       const { name } = this.$route.params;
 
       fetch(`/api/hooks/${name}/history`).then((res) => res.json()).then((res) => {
+        const records = res.records || [];
+
         if (!this.records.length) {
           this.records = formatRecords(res.records);
         } else if (this.records.length !== res.records.length) {
