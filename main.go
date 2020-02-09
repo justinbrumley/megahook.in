@@ -45,6 +45,11 @@ func checkOrigin(r *http.Request) bool {
 	return true
 }
 
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
+}
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
@@ -246,6 +251,8 @@ func main() {
 
 	r.HandleFunc("/hooks/{name}/history", historyHandler).
 		Methods("GET")
+
+	r.HandleFunc("/", indexHandler)
 
 	r.HandleFunc("/m/{id}", handler)
 
