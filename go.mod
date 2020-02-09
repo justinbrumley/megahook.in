@@ -8,4 +8,5 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/gorilla/websocket v1.4.1
 	github.com/satori/go.uuid v1.2.0
+	go.mongodb.org/mongo-driver v1.3.0
 )
