@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 )
@@ -36,14 +35,19 @@ const (
 	writeTimeout = time.Second * 30
 	pingPeriod   = time.Second * 5
 
-	// TODO: Move somewhere else
-	version = "0.0.4"
+	port    = "8080"
+	version = "0.1.0"
 )
 
 var clients = make(map[string]chan *Request)
 
 func checkOrigin(r *http.Request) bool {
 	return true
+}
+
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
 }
 
 var upgrader = websocket.Upgrader{
@@ -165,10 +169,6 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func homeHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "index.html")
-}
-
 func handler(w http.ResponseWriter, r *http.Request) {
 	v := mux.Vars(r)
 	id := v["id"]
@@ -241,8 +241,6 @@ func versionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	environment := os.Getenv("ENV")
-
 	initRedis()
 
 	r := mux.NewRouter()
@@ -251,33 +249,15 @@ func main() {
 	r.HandleFunc("/ws", websocketHandler).
 		Methods("GET")
 
-	r.HandleFunc("/", homeHandler).
+	r.HandleFunc("/hooks/{name}/history", historyHandler).
 		Methods("GET")
 
-	r.HandleFunc("/i/{id}", homeHandler).
-		Methods("GET")
-
-	r.HandleFunc("/api/hooks/{name}/history", historyHandler).
-		Methods("GET")
+	r.HandleFunc("/", indexHandler)
 
 	r.HandleFunc("/m/{id}", handler)
 
 	r.HandleFunc("/version", versionHandler).
 		Methods("GET")
-
-	r.PathPrefix(STATIC_DIR).Handler(http.StripPrefix(STATIC_DIR, http.FileServer(http.Dir("."+STATIC_DIR))))
-	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("./dist/"))))
-
-	port := "8080"
-
-	// Start HTTPS server on different Goroutine
-	if environment != "development" {
-		port = "80"
-
-		go func() {
-			log.Fatal(http.ListenAndServeTLS(":443", "/etc/letsencrypt/live/megahook.in/fullchain.pem", "/etc/letsencrypt/live/megahook.in/privkey.pem", r))
-		}()
-	}
 
 	fmt.Printf("Starting server on port %v\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, r))

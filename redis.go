@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-redis/redis/v7"
+	"os"
+	"strconv"
 	"time"
 )
 
@@ -14,16 +16,29 @@ type Record struct {
 	Timestamp int64     `json:"timestamp,omitempty"`
 }
 
-// TODO: Add store for config
-const (
-	addr     = "localhost:6379"
-	password = ""
-	db       = 0
-)
-
 var rClient *redis.Client
 
+var addr string = "localhost:6379"
+var password string = ""
+var db int = 0
+
 func initRedis() error {
+	if os.Getenv("REDIS_HOST") != "" {
+		addr = os.Getenv("REDIS_HOST")
+	}
+
+	if os.Getenv("REDIS_PASSWORD") != "" {
+		password = os.Getenv("REDIS_PASSWORD")
+	}
+
+	if os.Getenv("REDIS_DB") != "" {
+		var err error
+		db, err = strconv.Atoi(os.Getenv("REDIS_DB"))
+		if err != nil {
+			db = 0
+		}
+	}
+
 	rClient = redis.NewClient(&redis.Options{
 		Addr:     addr,
 		Password: password,
