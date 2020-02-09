@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -11,9 +10,9 @@ import (
 	"time"
 )
 
-type Namespace struct {
-	token     string `json:"token"`
-	namespace string `json:"namespace"`
+type TokenNamespace struct {
+	Token     string `json:"token"`
+	Namespace string `json:"namespace"`
 }
 
 const (
@@ -33,24 +32,18 @@ func initDB() error {
 	var err error
 	dbClient, err = mongo.NewClient(options.Client().ApplyURI(connstring))
 	if err != nil {
-		fmt.Printf("Error creating client: %v\n", err)
 		return err
 	}
 
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	err = dbClient.Connect(ctx)
 	if err != nil {
-		fmt.Printf("Error connecting to db: %v\n", err)
 		return err
 	}
 
 	ctx, _ = context.WithTimeout(context.Background(), 2*time.Second)
 	err = dbClient.Ping(ctx, readpref.Primary())
-	if err != nil {
-		fmt.Printf("Failed to ping db: %v\n", err)
-	}
-
-	return nil
+	return err
 }
 
 func getCollection() *mongo.Collection {
@@ -58,10 +51,10 @@ func getCollection() *mongo.Collection {
 }
 
 // Looks up token in db and returns namespace if found
-func getTokenNamespace(token string) (*Namespace, error) {
+func getTokenNamespace(token string) (*TokenNamespace, error) {
 	collection := getCollection()
 
-	result := &Namespace{}
+	result := &TokenNamespace{}
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*10)
 	err := collection.FindOne(ctx, bson.D{{"token", token}}).Decode(&result)
 	if err != nil {
@@ -76,10 +69,10 @@ func getTokenNamespace(token string) (*Namespace, error) {
 }
 
 // Search for namespace by... namespace
-func lookupNamespace(namespace string) (*Namespace, error) {
+func lookupNamespace(namespace string) (*TokenNamespace, error) {
 	collection := getCollection()
 
-	result := &Namespace{}
+	result := &TokenNamespace{}
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*10)
 	err := collection.FindOne(ctx, bson.D{{"namespace", namespace}}).Decode(&result)
 	if err != nil {
@@ -94,12 +87,12 @@ func lookupNamespace(namespace string) (*Namespace, error) {
 }
 
 // Create a new namespace record in db
-func createNamespace(token string, namespace string) (*Namespace, error) {
+func createNamespace(token string, namespace string) (*TokenNamespace, error) {
 	collection := getCollection()
 
-	ns := &Namespace{
-		token:     token,
-		namespace: namespace,
+	ns := &TokenNamespace{
+		Token:     token,
+		Namespace: namespace,
 	}
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*10)

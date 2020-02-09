@@ -242,6 +242,10 @@ func versionHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	initRedis()
+	err := initDB()
+	if err != nil {
+		fmt.Printf("Error initializing DB connection: %v\n", err)
+	}
 
 	r := mux.NewRouter()
 	r.StrictSlash(true)
@@ -253,6 +257,8 @@ func main() {
 		Methods("GET")
 
 	r.HandleFunc("/", indexHandler)
+
+	r.HandleFunc("/register", registerHandler)
 
 	r.HandleFunc("/m/{id}", handler)
 
