@@ -98,6 +98,7 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 		delete(clients, out)
 	})()
 
+	// Write the public URL back to client
 	url := "https://megahook.in/m/" + out
 	conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 	if err = conn.WriteMessage(websocket.TextMessage, []byte(url)); err != nil {
@@ -230,9 +231,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(response.StatusCode)
 		fmt.Fprint(w, response.Body)
 	}
-
-	// Store record in redis
-	addRecord(id, rec)
 }
 
 func versionHandler(w http.ResponseWriter, r *http.Request) {
