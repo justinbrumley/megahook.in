@@ -30,6 +30,12 @@ type Response struct {
 	StatusCode int                 `json:"status_code,omitempty"`
 }
 
+type ClientOptions struct {
+	Name  string `json:"name"`
+	Token string `json:"token"`
+	Track bool   `json:"track"`
+}
+
 const (
 	readTimeout  = time.Second * 30
 	writeTimeout = time.Second * 30
@@ -39,7 +45,7 @@ const (
 	version = "0.1.0"
 )
 
-var clients = make(map[string]chan *Request)
+var namespaces = make(map[string](map[string]chan *Request))
 
 func checkOrigin(r *http.Request) bool {
 	return true
@@ -58,6 +64,15 @@ var upgrader = websocket.Upgrader{
 
 const STATIC_DIR = "/static/"
 
+// Ensure that namespace client map is initialized
+func ensureNamespace(n string) map[string]chan *Request {
+	if _, ok := namespaces[n]; !ok {
+		namespaces[n] = make(map[string]chan *Request)
+	}
+
+	return namespaces[n]
+}
+
 func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -71,18 +86,28 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 
-	messageType, message, err := conn.ReadMessage()
+	// Expecting connection info from client
+	opts := &ClientOptions{}
+	err = conn.ReadJSON(&opts)
 	if err != nil {
-		fmt.Printf("Error reading from Client: %v\n", err)
+		fmt.Printf("Error reading opts from client: %v\n", err)
 		return
 	}
 
-	if messageType != websocket.TextMessage || strings.ToLower(string(message)) == "ws" {
-		fmt.Printf("Invalid message received from Client: %v\n", messageType)
-		return
+	ns := ""
+	if opts.Token != "" {
+		token, err := getTokenNamespace(opts.Token)
+		if err != nil {
+			fmt.Printf("Error getting token namespace: %v %v", opts.Token, err)
+			return
+		}
+
+		ns = token.Namespace
 	}
 
-	out := string(message)
+	clients := ensureNamespace(ns)
+
+	out := opts.Name
 	if _, ok := clients[out]; ok || len(out) == 0 {
 		// Generate a random name for the user if it's taken or they didn't provide one
 		out = uuid.Must(uuid.NewV4(), nil).String()
@@ -96,10 +121,19 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Closing connection...")
 		close(clients[out])
 		delete(clients, out)
+
+		if len(clients) == 0 {
+			fmt.Printf("Removing namespace clients map: %v\n", ns)
+			delete(namespaces, ns)
+		}
 	})()
 
 	// Write the public URL back to client
-	url := "https://megahook.in/m/" + out
+	url := "https://api.megahook.in/m/" + out
+	if ns != "" {
+		url = fmt.Sprintf("https://%v.api.megahook.in/m/%v", ns, out)
+	}
+
 	conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 	if err = conn.WriteMessage(websocket.TextMessage, []byte(url)); err != nil {
 		return
@@ -173,6 +207,13 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 func handler(w http.ResponseWriter, r *http.Request) {
 	v := mux.Vars(r)
 	id := v["id"]
+
+	ns := strings.Split(r.Host, ".")[0]
+	if ns == "api" || ns == "megahook" {
+		ns = ""
+	}
+
+	clients := ensureNamespace(ns)
 
 	if _, ok := clients[id]; !ok {
 		w.WriteHeader(404)
