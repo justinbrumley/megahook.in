@@ -102,7 +102,9 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		ns = token.Namespace
+		if token != nil {
+			ns = token.Namespace
+		}
 	}
 
 	clients := ensureNamespace(ns)
